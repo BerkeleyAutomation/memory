@@ -1,0 +1,5 @@
+autolab-core
+keras
+tensorflow>=1.10.0
+numpy
+scikit-image

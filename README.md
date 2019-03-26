@@ -1,2 +1,4 @@
-# memory
-Python module for Dex-Net memory system.
+# Berkeley AUTOLAB's Memory Package
+
+## Overview
+Dex-Net memory system.
