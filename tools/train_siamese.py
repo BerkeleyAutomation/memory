@@ -19,7 +19,7 @@ if __name__ == "__main__":
     # parse args
     parser = argparse.ArgumentParser(description="Train a Siamese Network in Keras.")
     parser.add_argument("dataset_dir", type=str, default=None,
-                        help="path to the dataset to use for training and validation")
+                        help="path to the base dataset (contains 'originals', 'train', 'validation')")
     parser.add_argument("--output_dir", type=str, default=None,
                         help="path to store the trained model")
     parser.add_argument("--tensorboard_port", type=int, default=6006,
