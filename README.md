@@ -9,6 +9,8 @@ Dex-Net memory system.
 - [ ] Add support for analysis. (vsatish + ksanders)
 - [ ] Begin hyper-parameter search. (ksanders)
 - [ ] Add suport for more layer features such as BatchNorm, Pooling, Regularization, etc. (vsatish.)
+- [ ] Add support for data augmentation.
 - [ ] Add support for Triplet Network. (vsatish)
 - [ ] Experiment with cropped inputs. (vsatish + ksanders)
+- [ ] Add nearest neighbours. (ksanders)
 
