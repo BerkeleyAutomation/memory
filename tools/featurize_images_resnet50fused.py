@@ -76,7 +76,6 @@ if __name__ == "__main__":
                         help="path to save the features to")
     parser.add_argument("--model_weights", type=str, default=DEFAULT_MODEL_WEIGHTS,
                         help="path to pre-trained ResNet50Fused model weights")
-     
 
     args = parser.parse_args()
     model_weights = args.model_weights
