@@ -6,6 +6,7 @@ Authors: Vishal Satish, Kate Sanders,
 """
 import os
 from collections import OrderedDict
+import json
 
 import tensorflow as tf
 import keras.layers as kl
@@ -16,6 +17,7 @@ from autolab_core import Logger
 from memory.model.utils import (NetworkMode, InputMode, 
                                  get_available_gpus, setup_tf_session, 
                                  l1_distance, l2_distance)
+from memory.training.utils import FileTemplates
 from memory.model import ResNet50Fused
 
 
@@ -38,7 +40,7 @@ class SiameseNet(object):
 
     @staticmethod
     def load(model_dir, verbose=True, log_file=None):
-        training_config_file = os.path.join(model_dir, "config.json")
+        training_config_file = os.path.join(model_dir, FileTemplates.CONFIG_FILENAME)
         with open(training_config_file) as fhandle:    
             training_config = json.load(fhandle, object_pairs_hook=OrderedDict)
         network_config = training_config["siamese_net"]
@@ -46,13 +48,13 @@ class SiameseNet(object):
         network = SiameseNet(network_config, verbose=verbose, log_file=log_file)
         network.initialize_network()
         
-        saved_model = os.path.join(model_dir, "model.h5")
+        saved_model = os.path.join(model_dir, FileTemplates.FINAL_MODEL_CKPT)
         network.load_trained_weights(saved_model)
 
         return network
 
 
-    def load_trained_weights(model):
+    def load_trained_weights(self, model):
         self._logger.info("Loading pre-trained weights...")
         self._model.load_weights(model)
 
@@ -86,8 +88,8 @@ class SiameseNet(object):
         self._model.summary() #TODO:(vsatish) Remove eventually.
 
 
-    def predict(self, input_pairs, bsz=32):
-        return self._model.predict(input_pairs, batch_size=bsz)
+    def predict(self, input_pairs, bsz=32, verbose=True):
+        return self._model.predict(input_pairs, batch_size=bsz, verbose=verbose)
 
 
     @property

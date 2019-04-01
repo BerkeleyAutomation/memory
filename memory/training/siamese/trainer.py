@@ -7,6 +7,8 @@ Authors: Vishal Satish, Kate Sanders,
 import os
 import cPickle as pkl
 import multiprocessing as mp
+from collections import OrderedDict
+import json
 
 import keras.callbacks as kc
 import keras.optimizers as ko
@@ -15,7 +17,7 @@ from autolab_core import Logger
 
 from memory.training.utils import (FileTemplates, DirTemplates,
                                    ImageDataset, DataGenerator,
-                                   build_contrastive_loss)
+                                   build_contrastive_loss, GeneralConstants)
 
 
 class SiameseTrainer(object):
@@ -39,6 +41,8 @@ class SiameseTrainer(object):
 
 
     def _parse_config(self, config):
+        self._cfg = config
+
         # training
         self._num_epochs = config["num_epochs"]
         self._loss_margin = config["loss_margin"]
@@ -142,10 +146,21 @@ class SiameseTrainer(object):
 
 
     def _create_output_dir(self):
+        # creat the output dir
         self._logger.info("Creating output dir...")
-
         self._model_dir = os.path.join(self._output_dir, self._model_name)
         os.mkdir(self._model_dir)
+
+        # save the training config to the output dir
+        self._logger.info("Saving training config...")
+        cfg_save_fname = os.path.join(self._model_dir, FileTemplates.CONFIG_FILENAME)
+        cfg_save_dict = OrderedDict()
+        for key in self._cfg.keys():
+            cfg_save_dict[key] = self._cfg[key]
+        with open(cfg_save_fname, "w") as fhandle:
+            json.dump(cfg_save_dict,
+                      fhandle,
+                      indent=GeneralConstants.JSON_INDENT)
 
 
     def _setup(self):

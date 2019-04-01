@@ -4,20 +4,20 @@ Author: Vishal Satish
 """
 
 
-# constants
-"""
-class DataConstants:
-    ORIG_IM_DATASET_PATH = "/nfs/diskstation/dmwang/mech_search_data/originals"
-"""
+# general constants
+class GeneralConstants:
+    JSON_INDENT = 2
+
 
 # file templates
 class FileTemplates:
     # Keras model checkpoints
-    MODEL_CKPT = "model_{epoch:02d}.hdf5"
+    MODEL_CKPT = "model_epoch_{epoch:02d}.hdf5"
     FINAL_MODEL_CKPT = "model.hdf5"
     
     TRAIN_HISTORY = "training_history.pkl"
-
+    CONFIG_FILENAME = "config.json"
+    
 
 # directory templates
 class DirTemplates:

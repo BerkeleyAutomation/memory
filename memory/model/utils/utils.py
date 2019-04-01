@@ -24,7 +24,6 @@ def l1_distance(vects):
 # Tensorflow helper functions
 session_has_been_set = False
 def setup_tf_session():
-    print("SETTING UP TF SESSION!!!")
     global session_has_been_set
     assert not session_has_been_set, "You are resetting the TF session-are you sure you want to do that?"
     session_has_been_set = True
