@@ -12,7 +12,7 @@ import autolab_core.utils as utils
 from autolab_core import YamlConfig, Logger
 from memory import SiameseNet, SiameseTrainer
 
-#setup logger
+# setup logger
 logger = Logger.get_logger("tools/train_siamese.py")
 
 if __name__ == "__main__":

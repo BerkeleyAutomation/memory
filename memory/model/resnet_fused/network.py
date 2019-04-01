@@ -12,6 +12,8 @@ import keras.models as km
 
 from autolab_core import Logger
 
+from memory.model.utils import setup_tf_session
+
 
 class ResNet50Fused(object):
     """ ResNet50 model in Keras with fused intermediate layers.  """
@@ -63,8 +65,12 @@ class ResNet50Fused(object):
             # do any TF session setup stuff here before we start building the network
             setup_tf_session()
 
-        self._input_im = kl.Input(shape=self._input_im_shape, name="Input_im")
+        self._input_im = kl.Input(shape=self._input_im_shape, name="input_im")
         self._model = self._build_network(self._input_im, name="ResNet50Fused")
+
+
+    def predict(self, images, bsz=32, verbose=True):
+        return self._model.predict(images, batch_size=bsz, verbose=verbose)
 
 
     @property

@@ -1,5 +1,6 @@
 """
 Siamese network implemented in Keras.
+
 Authors: Vishal Satish, Kate Sanders, 
          David Wang, Michael Danielczuk, 
          Matthew Matl
@@ -82,8 +83,8 @@ class SiameseNet(object):
 
 
     def initialize_network(self):
-        self._input_1 = kl.Input(shape=self._input_shape, name="Input_1")
-        self._input_2 = kl.Input(shape=self._input_shape, name="Input_2")
+        self._input_1 = kl.Input(shape=self._input_shape, name="input_1")
+        self._input_2 = kl.Input(shape=self._input_shape, name="input_2")
         self._model = self._build_network(self._input_1, self._input_2, name="siamese network")
         self._model.summary() #TODO:(vsatish) Remove eventually.
 
