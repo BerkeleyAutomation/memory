@@ -21,8 +21,16 @@ num_val_pairs: 10
 
 shuffle_training_inputs: 1
 data_augmentation_suffixes: [""]
-allow_different_views: 0  
+allow_different_views: 1  
 
+######################### NEIGHBORS PARAMS #####################
+
+neighbor_classification: 1
+dimension: 9984 # dimension of input npz files
+distance: None # set to None for default
+cache_dir: '/home/kate/proj1/imgs/mech_search_data_features1/train'
+test_dir: '/home/kate/proj1/imgs/mech_search_data_features1/validation'
+num_neighbors: 10 # max number of neighbors to be returned by nearpy engine
 
 ######################### MODEL PARAMS #########################
 siamese_net:
@@ -135,5 +143,6 @@ siamese_net:
         norm: 1
     merge_stream: # can be fc layer(s) for generic distance function, or l1/l2
       l2_norm:
-        type: l2
+        type: fc
+        out_size: 1
 
