@@ -12,6 +12,7 @@ import json
 import tensorflow as tf
 import keras.layers as kl
 import keras.models as km
+import keras.regularizers as kr
 
 from autolab_core import Logger
 
@@ -67,6 +68,7 @@ class SiameseNet(object):
         self._input_mode = config["input_mode"]
         assert self._input_mode in [InputMode.IMAGE, InputMode.FEATURE], ("Invalid input "
                                                                             "mode {}.".format(self._input_mode))
+        self._logger.info("Using input mode: {}.".format(self._input_mode))
 
         self._num_gpus = config["num_gpus"]
         assert self._num_gpus <= 2, "Max 2 GPUs (1 per siamese network) are supported."
@@ -80,6 +82,10 @@ class SiameseNet(object):
             assert len(self._input_shape) == 3, "Incorrect input shape dim for image inputs."
 
         self._architecture = config["architecture"]
+
+        # these will be updated by the SiameseTrainer as they are more of training hyper-parameters
+        self._reg_coeff = 0.0
+        self._drop_rate = 0.0  
 
 
     def initialize_network(self):
@@ -108,6 +114,28 @@ class SiameseNet(object):
         return self._input_mode
 
 
+    @property
+    def reg_coeff(self):
+        return self._reg_coeff
+
+
+    @reg_coeff.setter
+    def reg_coeff(self, coeff):
+        self._logger.info("Updating network weight regularization coefficient to {}...".format(coeff))
+        self._reg_coeff = coeff
+
+
+    @property
+    def drop_rate(self):
+        return self._drop_rate
+
+
+    @drop_rate.setter
+    def drop_rate(self, rate):
+        self._logger.info("Updating network dropout rate to {}...".format(rate))
+        self._drop_rate = rate
+
+
     def _build_input_stream(self, input_node, layer_dict, name=None, layers=None):
         if name is None:
             self._logger.info("Building input stream...")
@@ -131,9 +159,17 @@ class SiameseNet(object):
                     assert self._input_mode == InputMode.IMAGE, "Can only have conv layers if inputs are images."
 
                     if prev_layer == "start":
-                        layers.append(kl.Conv2D(layer_config["num_filt"], layer_config["filt_dim"], padding=layer_config["pad"], activation="relu", input_shape=self._input_shape, name=layer_name))
+                        # need to provide input shape for first conv layer
+                        layers.append(kl.Conv2D(layer_config["num_filt"], layer_config["filt_dim"], padding=layer_config["pad"], activation="relu", kernel_regularizer=kr.l2(self._reg_coeff), bias_regularizer=kr.l2(self._reg_coeff), input_shape=self._input_shape, name=layer_name))
                     else:
-                        layers.append(kl.Conv2D(layer_config["num_filt"], layer_config["filt_dim"], padding=layer_config["pad"], activation="relu", name=layer_name))
+                        layers.append(kl.Conv2D(layer_config["num_filt"], layer_config["filt_dim"], padding=layer_config["pad"], activation="relu", kernel_regularizer=kr.l2(self._reg_coeff), bias_regularizer=kr.l2(self._reg_coeff), name=layer_name))
+
+                    # pooling
+                    layers.append(kl.MaxPooling2D(pool_size=layer_config["pool_size"], strides=layer_config["pool_stride"], padding="same", name="{}_max_pool".format(layer_name)))
+
+                    # batch norm
+                    if layer_config["norm"]:
+                        layers.append(kl.BatchNormalization(name="{}_batch_norm".format(layer_name)))
                 elif layer_type == "fc":
                     self._logger.info("Building fully connected layer: {}...".format(layer_name))
 
@@ -143,17 +179,37 @@ class SiameseNet(object):
                         layers.append(kl.Flatten())
 
                     if layer_index == last_index:
-                        # we don't want an activation for the final layer
-                        layers.append(kl.Dense(layer_config["out_size"], name=layer_name))
+                        # we don't want an activation, dropout, or normalization for the final layer
+                        layers.append(kl.Dense(layer_config["out_size"], kernel_regularizer=kr.l2(self._reg_coeff), bias_regularizer=kr.l2(self._reg_coeff), name=layer_name))
+
+                        #TODO(vsatish): Find a proper fix for this.
+                        if layer_config["norm"] and self._architecture["merge_stream"].values()[0]["type"] == "fc":
+                            layers.append(kl.BatchNormalization(name="{}_batch_norm".format(layer_name)))
+                        if layer_config["norm"] and not self._architecture["merge_stream"].values()[0]["type"] == "fc":
+                            self._logger.warning("Ignoring norm in final layer...")
                     else:
-                        layers.append(kl.Dense(layer_config["out_size"], activation="relu", name=layer_name))
+                        layers.append(kl.Dense(layer_config["out_size"], activation="relu", kernel_regularizer=kr.l2(self._reg_coeff), bias_regularizer=kr.l2(self._reg_coeff), name=layer_name))                    
+
+                        # dropout
+                        layers.append(kl.Dropout(self._drop_rate, name="{}_dropout".format(layer_name)))
+
+                        # batch norm
+                        if layer_config["norm"]:
+                            layers.append(kl.BatchNormalization(name="{}_batch_norm".format(layer_name)))
                 elif layer_type == "resnet50f":
                     self._logger.info("Building ResNet50Fused layer: {}...".format(layer_name))
 
-                    assert prev_layer == "start", "ResNet50Fused layer must be first."
+                    assert prev_layer in ["start", "input_norm"], "ResNet50Fused layer must be first."
                     assert self._input_mode == InputMode.IMAGE, "ResNet50Fused layer inputs must be images."
                     assert layer_index != last_index, "ResNet50Fused layer cannot be last." #NOTE: Ask vishal about this if you're confused.
                     layers.append(ResNet50Fused.load(self._input_shape, weights=layer_config["weights"], trainable=layer_config["trainable"], setup_session=False).model)
+                elif layer_type == "input_norm":
+                    #NOTE: This is not a real layer, just a wrapper over a single batch norm to place it at the beginning of the network for normalizing inputs
+                    #TODO(vsatish): Find a proper fix for this.
+                    self._logger.info("Building input normalization layer: {}...".format(layer_name))
+
+                    assert prev_layer == "start", "Input normalization layer must be first."
+                    layers.append(kl.BatchNormalization(name="{}".format(layer_name)))
                 else:
                     raise ValueError("Layer type: {} unsupported in input stream.".format(layer_type))
                 prev_layer = layer_type
@@ -189,15 +245,29 @@ class SiameseNet(object):
                     # the input streams have no activation, so we add one
                     input_node_1 = kl.Activation("relu")(input_node_1)
                     input_node_2 = kl.Activation("relu")(input_node_2)
-                    
+
+                    # the input streams have no dropout, so we add it
+                    input_node_1 = kl.Dropout(self._drop_rate)(input_node_1)
+                    input_node_2 = kl.Dropout(self._drop_rate)(input_node_2)
+
                     # concat
                     output_node = kl.Concatenate(axis=1)([input_node_1, input_node_2])
 
                 if layer_index == last_index: 
                     assert layer_config["out_size"] == 1, "Output size of final fully connected layer must be 1."
-                    output_node = kl.Dense(layer_config["out_size"], name=layer_name)(output_node)
+                    if layer_config["norm"]:
+                        self._logger.warning("Ignoring norm in final layer...")
+
+                    output_node = kl.Dense(layer_config["out_size"], kernel_regularizer=kr.l2(self._reg_coeff), bias_regularizer=kr.l2(self._reg_coeff), name=layer_name)(output_node)
                 else:
-                    output_node = kl.Dense(layer_config["out_size"], activation="relu", name=layer_name)(output_node)
+                    output_node = kl.Dense(layer_config["out_size"], activation="relu", kernel_regularizer=kr.l2(self._reg_coeff), bias_regularizer=kr.l2(self._reg_coeff), name=layer_name)(output_node)
+                    
+                    # dropout
+                    output_node = kl.Dropout(self._drop_rate, name="{}_dropout".format(layer_name))(output_node)
+
+                    # batch norm
+                    if layer_config["norm"]:
+                        output_node = kl.BatchNormalization(name="{}_batch_norm".format(layer_name))(output_node)
             elif layer_type == "l1":
                 self._logger.info("Building l1 distance layer: {}...".format(layer_name))
 
@@ -222,7 +292,7 @@ class SiameseNet(object):
             with tf.device(self._avail_gpus[0]):
                 input_stream_1_out, input_stream_layers = self._build_input_stream(input_node_1, self._architecture["input_stream"], name="input stream 1")
             with tf.device(self._avail_gpus[1]):
-                input_stream_2_out, _ = self._build_input_stream(input_node_2, self._architecture["input_stream"], name="input stream 2", layers=input_stream_layers) #TODO:(vsatish) Confirm that this still reuses weights
+                input_stream_2_out, _ = self._build_input_stream(input_node_2, self._architecture["input_stream"], name="input stream 2", layers=input_stream_layers) #TODO(vsatish): Confirm that this still reuses weights
         else:
             input_stream_1_out, input_stream_layers = self._build_input_stream(input_node_1, self._architecture["input_stream"], name="input stream 1")
             input_stream_2_out, _ = self._build_input_stream(input_node_2, self._architecture["input_stream"], name="input stream 2", layers=input_stream_layers)

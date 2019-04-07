@@ -1,0 +1,139 @@
+#####################################
+## THIS IS AN EXAMPLE TRAINING SCRIPT
+#####################################
+
+######################## TRAINING PARAMS ########################
+num_epochs: 5
+loss_margin: 1.0 # pretty important parameter, trade-off between training time and accuracy
+optimizer:
+  type: Adam # right now only one supported, TODO:(vsatish) Add support for more optimizers.
+  # the following parameters will be optimizer-specific, check out build_optimizer() in SiameseTrainer for details
+  lr: 0.001 # should be low for fine-tuning
+reg_coeff: 0.0005
+drop_rate: 0.0
+tensorboard_port: 6006 # currently not used, TODO:(vsatish) Get automatic TensorBoard launch working.
+
+bsz: 8 # this is probably not a great choice of bsz, but it allows this example to fit in 12GB DRAM x2 devices
+num_prefetch_workers: 8 # at max number of logical cores
+
+num_train_pairs: 100
+num_val_pairs: 10
+
+shuffle_training_inputs: 1
+data_augmentation_suffixes: [""]
+allow_different_views: 0  
+
+
+######################### MODEL PARAMS #########################
+siamese_net:
+  network_mode: training # training or inference
+  input_mode: image # image or feature
+  input_shape: [512, 512, 3] # dim must match up with input_mode (3 for image, 1 for feature)
+  num_gpus: 2 # number of GPUs to use, max 2 (1 for each input stream)
+
+  architecture:
+    ############################################
+    # The generic format of the architecture is:
+    # [] -> layer type
+    # ... -> 1+
+    # input_stream:
+    #   First OPTIONALLY:
+    #   [input_norm] normalizes inputs to network, essentially wrapper for batch norm
+    #
+    #   Then ONE of the following if input_mode == "image":
+    #   [resnet50f] resnet50fused with final fc layer cut off, can be randomly 
+    #               initialized or loaded from pre-trained weights; if the latter, 
+    #               can be fine-tuned or frozen
+    #   OR
+    #   [conv]
+    #   .
+    #   .
+    #   .
+    #
+    #   Then OPTIONALLY (start here if input_mode == "feature", NO LONGER OPTIONAL; also 
+    #   must have at least one of these if prev layer is resnet50f-this is because the 
+    #   final layer of resnet50f has an activation applied, and we don't want our final 
+    #   layer in the input_stream to have one):
+    #   [fc] 
+    #   .
+    #   .
+    #   .
+    # merge_stream:
+    #   ONE of the following:
+    #   [l2] l2 norm
+    #   OR
+    #   [l1] l1 norm
+    #   OR
+    #   [fc] (fc layers can represent unknown distance 
+    #         function, final layer must have out_size of 1)
+    #   .
+    #   .
+    #   .
+    ############################################
+    input_stream: # main stream (duplicated) of siamese network
+      input_norm: # wrapper for batch norm, normalizes inputs to network
+        type: input_norm
+      res_net:
+        type: resnet50f
+        weights: /nfs/diskstation/vsatish/dex-net/data/memory/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5 # must be "random" or path to pre-trained *.h5 weights
+        trainable: 1 # fine-tuning
+#      conv1_1:
+#        type: conv
+#        num_filt: 32
+#        filt_dim: 8
+#        pad: valid
+#        pool_size: 4
+#        pool_stride: 4
+#        norm: 1
+#      conv1_2:
+#        type: conv
+#        num_filt: 32
+#        filt_dim: 5
+#        pad: valid
+#        pool_size: 2 
+#        pool_stride: 2
+#        norm: 1
+#      conv2_1:
+#        type: conv
+#        num_filt: 64
+#        filt_dim: 3
+#        pad: valid
+#        pool_size: 2
+#        pool_stride: 2
+#        norm: 1
+#      conv2_2:
+#        type: conv
+#        num_filt: 64
+#        filt_dim: 3
+#        pad: valid
+#        pool_size: 1 # effectively no pooling
+#        pool_stride: 1
+#        norm: 1
+#      conv3_1:
+#        type: conv
+#        num_filt: 128
+#        filt_dim: 3
+#        pad: same
+#        pool_size: 1
+#        pool_stride: 1
+#        norm: 1
+#      conv3_2:
+#        type: conv
+#        num_filt: 128
+#        filt_dim: 3
+#        pad: same
+#        pool_size: 1
+#        pool_stride: 1
+#        norm: 1
+      fc_1:
+        type: fc
+        out_size: 256 
+        norm: 1
+      fc_2:
+        type: fc
+        out_size: 128 # this will be our embedding vector size
+        norm: 1
+    merge_stream: # can be fc layer(s) for generic distance function, or l1/l2
+      l2_norm:
+        type: l2
+
