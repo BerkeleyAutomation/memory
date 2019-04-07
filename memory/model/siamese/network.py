@@ -152,6 +152,8 @@ class SiameseNet(object):
             for layer_index, (layer_name, layer_config) in enumerate(layer_dict.items()):
                 layer_type = layer_config["type"]
 
+                print(layer_config.keys())
+
                 if layer_type == "conv":
                     self._logger.info("Building convolution layer: {}...".format(layer_name))
 
