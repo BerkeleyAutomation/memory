@@ -8,7 +8,7 @@ Dex-Net memory system.
 - [x] Add support for featurization. Important for training time & network size constraints. (vsatish)
 - [ ] Add support for analysis. (vsatish + ksanders)
 - [ ] Begin hyper-parameter search. (ksanders)
-- [ ] Add suport for more layer features such as BatchNorm, Pooling, Regularization, etc. (vsatish)
+- [x] Add suport for more layer features such as BatchNorm, Pooling, Regularization, etc. (vsatish)
 - [ ] Add support for data augmentation. (vsatish)
 - [ ] Add support for Triplet Network. (vsatish)
 - [ ] Experiment with cropped inputs. (vsatish + ksanders)
