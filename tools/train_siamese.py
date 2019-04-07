@@ -80,4 +80,3 @@ if __name__ == "__main__":
 
     if train_config["neighbor_classification"]:
         predictions = trainer.neighbor_prediction()
-        print('hi')

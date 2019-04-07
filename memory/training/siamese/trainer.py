@@ -183,7 +183,8 @@ class SiameseTrainer(object):
 
         for pair in neighbors:
             test_img = np.load(pair[0])['arr_0']
-            for neighbor in pair:
+            for neighbor in pair[1]:
+                neighbor = neighbor[1]
                 n_dir = os.path.join(cache_dir, neighbor)
                 neighbor_img = np.load(n_dir)['arr_0']
 

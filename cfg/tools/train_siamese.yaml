@@ -8,14 +8,14 @@ loss_margin: 1.0 # pretty important parameter, trade-off between training time a
 optimizer:
   type: Adam # right now only one supported, TODO:(vsatish) Add support for more optimizers.
   # the following parameters will be optimizer-specific, check out build_optimizer() in SiameseTrainer for details
-  lr: 0.00001 # should be low for fine-tuning
+  lr: 0.0000001 # should be low for fine-tuning
 tensorboard_port: 6006 # currently not used, TODO:(vsatish) Get automatic TensorBoard launch working.
 
 bsz: 8 # this is probably not a great choice of bsz, but it allows this example to fit in 12GB DRAM x2 devices
 num_prefetch_workers: 8 # at max number of logical cores
 
-num_train_pairs: 200
-num_val_pairs: 20
+num_train_pairs: 1000
+num_val_pairs: 100
 
 shuffle_training_inputs: 1
 data_augmentation_suffixes: [""]
@@ -26,15 +26,15 @@ allow_different_views: 1
 neighbor_classification: 1
 dimension: 9984 # dimension of input npz files
 distance: None # set to None for default
-cache_dir: '/home/kate/proj1/imgs/mech_search_data_features1/train'
-test_dir: '/home/kate/proj1/imgs/mech_search_data_features1/validation'
+cache_dir: 
+test_dir: 
 num_neighbors: 10 # max number of neighbors to be returned by nearpy engine
 
 ######################### MODEL PARAMS #########################
 siamese_net:
   network_mode: training # training or inference
-  input_mode: image # image or feature
-  input_shape: [512, 512, 3] # dim must match up with input_mode (3 for image, 1 for feature)
+  input_mode: feature # image or feature
+  input_shape: [9984] # dim must match up with input_mode (3 for image, 1 for feature)
   num_gpus: 2 # number of GPUs to use, max 2 (1 for each input stream)
 
   architecture:
@@ -74,10 +74,13 @@ siamese_net:
     #   .
     ############################################
     input_stream: # main stream (duplicated) of siamese network
-      res_net:
-        type: resnet50f
-        weights: /nfs/diskstation/vsatish/dex-net/data/memory/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5 # must be "random" or path to pre-trained *.h5 weights
-        trainable: 1 # fine-tuning
+      res_net:  # weights/trainable necessary for resnet50f, out_size necessary for fc
+        type: fc
+        out_size: 512
+#        weights: /nfs/diskstation/vsatish/dex-net/data/memory/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5 # must be "random" or path to pre-trained *.h5 weights
+#        trainable: 1 # fine-tuning
+
+
 #      conv1_1:
 #        type: conv
 #        num_filt: 32
