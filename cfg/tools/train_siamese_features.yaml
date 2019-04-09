@@ -24,7 +24,7 @@ data_augmentation_suffixes: [""]
 allow_different_views: 0  
 
 
-######################### MODEL PARAMS #########################
+######################## MODEL PARAMS #########################
 siamese_net:
   network_mode: training # training or inference
   input_mode: feature # image or feature

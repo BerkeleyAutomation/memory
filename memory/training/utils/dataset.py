@@ -114,9 +114,9 @@ class ImageDataset(object):
             im2_views = os.path.join(folder1, view_str)
             #im2_views = os.path.join(folder1, "{}.npz".format(view_str))
             #im2_views = os.path.join(folder1, "view_000000")
-            im2 = os.path.join(im2_views, random.choice(os.listdir(im2_views))  )
+            im2 = os.path.join(im2_views, random.choice(os.listdir(im2_views)))
             #im2 = os.path.join(im2_views, "img.npz")
-            # print ("im2: " + str(im2) )
+            # print ("im2: " + str(im2))
             #im2 = im2_views
             label = 1
             class2 = class1

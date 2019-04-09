@@ -12,7 +12,7 @@ import autolab_core.utils as utils
 from autolab_core import YamlConfig, Logger
 from memory import SiameseNet, SiameseTrainer
 
-#setup logger
+# setup logger
 logger = Logger.get_logger("tools/train_siamese.py")
 
 if __name__ == "__main__":
@@ -76,7 +76,4 @@ if __name__ == "__main__":
                              train_config,
                              model_name=name)
     trainer.train()
-    logger.info("Total Training Time:" + str(utils.get_elapsed_time(time.time() - start_time))) 
-
-    if train_config["neighbor_classification"]:
-        predictions = trainer.neighbor_prediction()
+    logger.info("Total Training Time:" + str(utils.get_elapsed_time(time.time() - start_time)))
