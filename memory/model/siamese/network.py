@@ -12,6 +12,7 @@ import json
 import tensorflow as tf
 import keras.layers as kl
 import keras.models as km
+import numpy as np
 
 from autolab_core import Logger
 
@@ -20,7 +21,7 @@ from memory.model.utils import (NetworkMode, InputMode,
                                  l1_distance, l2_distance)
 from memory.training.utils import FileTemplates
 from memory.model import ResNet50Fused
-
+from memory.model.nearest_neighbors.neighbor_gen import NeighborGenerator
 
 class SiameseNet(object):
     """ Siamese network implemented in Keras. """
@@ -123,8 +124,6 @@ class SiameseNet(object):
             last_index = len(layer_dict.keys()) - 1
             for layer_index, (layer_name, layer_config) in enumerate(layer_dict.items()):
                 layer_type = layer_config["type"]
-
-                print(layer_config.keys())
 
                 if layer_type == "conv":
                     self._logger.info("Building convolution layer: {}...".format(layer_name))
@@ -232,3 +231,20 @@ class SiameseNet(object):
         merge_stream_out = self._build_merge_stream(input_stream_1_out, input_stream_2_out, self._architecture["merge_stream"])
         return km.Model(inputs=(input_node_1, input_node_2), outputs=merge_stream_out, name=name)
 
+    def neighbor_prediction(self, config, cache_ims, cache_labels, test_ims):
+        predictions = []
+
+        neighbor_gen = NeighborGenerator(config, cache_ims, cache_labels)
+
+        neighbors = neighbor_gen.predict(test_ims)
+
+        for index in range(len(test_ims)):
+            test_img = test_ims[index]
+            neighbor_set = neighbors[index]
+            for neighbor in neighbor_set:
+                neighbor_img = neighbor[0]
+                print(test_img, test_img.shape)
+                print(neighbor_img, neighbor_img.shape)
+                prediction = self.predict([np.array([test_img]), np.array([neighbor_img])])
+                predictions.append([test_img, neighbor, prediction])
+        return predictions

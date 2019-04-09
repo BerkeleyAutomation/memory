@@ -8,16 +8,17 @@ import os
 import cPickle as pkl
 import multiprocessing as mp
 
+import numpy as np
 import keras.callbacks as kc
 import keras.optimizers as ko
 
 from autolab_core import Logger
 
+from memory.model.nearest_neighbors.neighbor_gen import NeighborGenerator
 from memory.training.utils import (FileTemplates, DirTemplates,
                                    ImageDataset, DataGenerator,
                                    build_contrastive_loss)
-from memory.model.nearest_neighbors.neighbor_gen import NeighborGenerator
-import numpy as np
+
 
 class SiameseTrainer(object):
     """ Trains a Siamese Network. Implemented in Keras. """
@@ -57,14 +58,6 @@ class SiameseTrainer(object):
         self._num_val_pairs = config["num_val_pairs"]
         self._data_augmentation_suffixes = config["data_augmentation_suffixes"]
         self._allow_different_views = config["allow_different_views"]
-
-        # neighbors
-        self.neighbor_classification = config["neighbor_classification"]
-        self.dimension = config["dimension"]
-        self.distance = config["distance"]
-        self.cache_dir = config["cache_dir"]
-        self.test_dir = config["test_dir"]
-        self.num_neighbors = config["num_neighbors"]
 
     def _launch_tensorboard(self):
         """ Launches Tensorboard to visualize training. """
@@ -167,27 +160,3 @@ class SiameseTrainer(object):
 
         # build train and val data generators
         self._train_gen, self._val_gen = self._build_data_generators(train_dataset, val_dataset)
-
-
-    def neighbor_prediction(self):
-        predictions = []
-
-        cache_dir = self.cache_dir
-        test_img_dir = self.test_dir
-
-        neighbor_gen = NeighborGenerator(self)
-        neighbor_gen.load_data(cache_dir)
-
-        # form [[img_file, [neighbors]], ...]
-        neighbors = neighbor_gen.batch_predict(test_img_dir)
-
-        for pair in neighbors:
-            test_img = np.load(pair[0])['arr_0']
-            for neighbor in pair[1]:
-                neighbor = neighbor[1]
-                n_dir = os.path.join(cache_dir, neighbor)
-                neighbor_img = np.load(n_dir)['arr_0']
-
-                prediction = self._network.predict([np.array([test_img]), np.array([neighbor_img])])
-                predictions.append([pair[0], neighbor, prediction])
-        return predictions

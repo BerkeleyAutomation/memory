@@ -21,15 +21,6 @@ shuffle_training_inputs: 1
 data_augmentation_suffixes: [""]
 allow_different_views: 1  
 
-######################### NEIGHBORS PARAMS #####################
-
-neighbor_classification: 1
-dimension: 9984 # dimension of input npz files
-distance: None # set to None for default
-cache_dir: 
-test_dir: 
-num_neighbors: 10 # max number of neighbors to be returned by nearpy engine
-
 ######################### MODEL PARAMS #########################
 siamese_net:
   network_mode: training # training or inference
