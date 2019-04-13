@@ -1,0 +1,6 @@
+autolab-core
+numpy>=1.14.0
+tensorflow-gpu>=1.10.0,<=1.13.1
+scikit-image<0.15.0
+keras
+nearpy
