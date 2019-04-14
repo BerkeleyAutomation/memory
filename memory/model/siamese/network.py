@@ -244,5 +244,5 @@ class SiameseNet(object):
             for neighbor in neighbor_set:
                 neighbor_img = neighbor[0]
                 prediction = self.predict([np.array([test_img]), np.array([neighbor_img])])
-                predictions.append([neighbor[1], prediction])
+                predictions.append([test_img, neighbor[1], prediction])
         return predictions
