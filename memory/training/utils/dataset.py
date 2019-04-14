@@ -72,7 +72,7 @@ class ImageDataset(object):
         if pos:
             # Pick random slice of original image in that view
             im2_views = os.path.join(folder1, view_str)
-            im2 = os.path.join(im2_views, random.choice(os.listdir(im2_views))  )
+            im2 = os.path.join(im2_views, random.choice(os.listdir(im2_views)))
 
             # print ("im2: " + str(im2) )
             label = 1

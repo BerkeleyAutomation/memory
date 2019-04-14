@@ -16,8 +16,8 @@ from autolab_core import Logger
 
 from memory.model.nearest_neighbors.neighbor_gen import NeighborGenerator
 from memory.training.utils import (FileTemplates, DirTemplates,
-                                   ImageDataset, DataGenerator,
-                                   build_contrastive_loss)
+                                   GeneralConstants, ImageDataset, 
+                                   DataGenerator, build_contrastive_loss)
 
 
 class SiameseTrainer(object):
@@ -45,6 +45,8 @@ class SiameseTrainer(object):
         self._num_epochs = config["num_epochs"]
         self._loss_margin = config["loss_margin"]
         self._optimizer_config = config["optimizer"]
+        self._reg_coeff = config["reg_coeff"]
+        self._drop_rate = config["drop_rate"]
         self._tensorboard_port = config["tensorboard_port"]
 
         # data
@@ -87,6 +89,8 @@ class SiameseTrainer(object):
         self._setup()
 
         # build the network
+        self._network.reg_coeff = self._reg_coeff # set the network l2 weight regularization coefficient
+        self._network.drop_rate = self._drop_rate # set the network dropout rate
         self._network.initialize_network()
 
         # optimize
@@ -145,8 +149,25 @@ class SiameseTrainer(object):
     def _create_output_dir(self):
         self._logger.info("Creating output dir...")
 
+        # create the output dir
         self._model_dir = os.path.join(self._output_dir, self._model_name)
         os.mkdir(self._model_dir)
+
+        # save the training config to the output dir
+        self._logger.info("Saving training config...")
+
+        # copy some extra metadata to the config
+        self._cfg["dataset_dir"] = self._dataset_dir
+
+        # save
+        cfg_save_fname = os.path.join(self._model_dir, FileTemplates.CONFIG_FILENAME)
+        cfg_save_dict = OrderedDict()
+        for key in self._cfg.keys():
+            cfg_save_dict[key] = self._cfg[key]
+        with open(cfg_save_fname, "w") as fhandle:
+            json.dump(cfg_save_dict,
+                      fhandle,
+                      indent=GeneralConstants.JSON_INDENT)
 
 
     def _setup(self):
