@@ -12,7 +12,7 @@ from autolab_core import Logger
 class Neighbors:
     """ Nearest neighbors. """
 
-    def __init__(self, config, verbose=None, log_file=None):
+    def __init__(self, config, verbose=True, log_file=None):
         # set up logger
         self._logger = Logger.get_logger(self.__class__.__name__, 
                                          log_file=log_file, 

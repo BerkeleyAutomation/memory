@@ -167,7 +167,7 @@ class SiameseTrainer(object):
                       indent=GeneralConstants.JSON_INDENT)
 
 
-   def _setup(self):
+    def _setup(self):
         self._logger.info("Setting up for training...")
 
         # create output dir

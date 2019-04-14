@@ -13,7 +13,7 @@ import numpy as np
 
 from autolab_core import Logger
 
-from memory.model import ResNet50Fused
+from memory import ResNet50Fused
 
 # setup logger
 logger = Logger.get_logger("tools/featurize_images_resnet50fused.py")
