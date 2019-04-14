@@ -14,8 +14,8 @@ import keras.optimizers as ko
 from autolab_core import Logger
 
 from memory.training.utils import (FileTemplates, DirTemplates,
-                                   ImageDataset, DataGenerator,
-                                   build_contrastive_loss)
+                                   GeneralConstants, ImageDataset, 
+                                   DataGenerator, build_contrastive_loss)
 
 
 class SiameseTrainer(object):
@@ -147,6 +147,7 @@ class SiameseTrainer(object):
     def _create_output_dir(self):
         self._logger.info("Creating output dir...")
 
+        # create the output dir
         self._model_dir = os.path.join(self._output_dir, self._model_name)
         os.mkdir(self._model_dir)
 
