@@ -182,13 +182,16 @@ class ImageDataset(object):
     def load_classes(self, image_id):
         return (self.triple_info[image_id]['class1'], self.triple_info[image_id]['class2'])
 
+    def load_triples(self, triples):
+        self.triple_info = triples
+
     @property
     def triples(self):
         return self.triple_info
 
 
 class DataGenerator(ku.Sequence):
-    def __init__(self, im_dataset, batch_size=32, dim=(32,32,32), shuffle=True, dataset_type="image", output=False):
+    def __init__(self, im_dataset, batch_size=32, dim=(32,32,32), shuffle=True, dataset_type="image", output=False, output_file='_.txt'):
         """Initialization"""
         self.im_dataset = im_dataset
         self.batch_size = batch_size
@@ -197,6 +200,7 @@ class DataGenerator(ku.Sequence):
         self.on_epoch_end()
         self.dataset_type = dataset_type
         self.output = output
+        self.output_file = output_file
 
     def __getitem__(self, index):
         """Generate one batch of data"""
@@ -206,7 +210,7 @@ class DataGenerator(ku.Sequence):
         # Generate data
         X, Y, z, c1, c2 = self.__data_generation(indices)
         if self.output:
-            f = open("ground.txt", "a")
+            f = open(self.output_file, "a")
             for index in range(len(z)):
                 f.write('{} {} {} '.format(z[index], c1[index], c2[index]))
             f.close()

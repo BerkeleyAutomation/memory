@@ -20,6 +20,11 @@ num_val_pairs: 100
 shuffle_training_inputs: 1
 data_augmentation_suffixes: [""]
 allow_different_views: 1  
+output: True
+
+load_datasets: False
+train_data_file: None
+val_data_file: None
 
 ######################### MODEL PARAMS #########################
 siamese_net:

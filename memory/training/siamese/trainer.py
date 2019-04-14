@@ -60,6 +60,10 @@ class SiameseTrainer(object):
         self._num_val_pairs = config["num_val_pairs"]
         self._data_augmentation_suffixes = config["data_augmentation_suffixes"]
         self._allow_different_views = config["allow_different_views"]
+        self._output = config["output"]
+        self._load_datasets = config["load_datasets"]
+        self._train_data_file = config["train_data_file"]
+        self._val_data_file = config["val_data_file"]
 
     def _launch_tensorboard(self):
         """ Launches Tensorboard to visualize training. """
@@ -118,15 +122,37 @@ class SiameseTrainer(object):
         # save the final model
         self._network.model.save_weights(os.path.join(self._model_dir, FileTemplates.FINAL_MODEL_CKPT))
 
+    def model_analysis(self):
+        # to be called after train
+        pred_generator = DataGenerator(val_dataset, batch_size=self._bsz,
+                                                   dim=self._network.input_shape,
+                                                   shuffle=self._shuffle_training_inputs,
+                                                   dataset_type=self._network.input_mode,
+                                                   output=self._output,
+                                                   output_file='pred.txt')
+
+        predictions = self._network.model.predict_generator(_pred_generator, verbose=1)
+        np.save('predictions.npy', np.array(predictions))
+        # should add a call to some analysis script here
 
     def _prepare_datasets(self):
         self._logger.info("Preparing datasets...")
 
         train_dataset = ImageDataset(self._dataset_dir, "train", self._data_augmentation_suffixes, self._allow_different_views)
-        train_dataset.prepare(self._num_train_pairs)
+
+        if self._load_datasets:
+            train_data = np.load(self._train_data_file)
+            train_dataset.load_triples(train_data)
+        else:
+            train_dataset.prepare(self._num_train_pairs)
 
         val_dataset = ImageDataset(self._dataset_dir, "validation")
-        val_dataset.prepare(self._num_val_pairs)
+
+        if self._load_datasets:
+            val_data = np.load(self._val_data_file)
+            val_dataset.load_triples(val_data)
+        else:
+            val_dataset.prepare(self._num_val_pairs)
 
         return train_dataset, val_dataset
 
@@ -137,11 +163,15 @@ class SiameseTrainer(object):
         train_generator = DataGenerator(train_dataset, batch_size=self._bsz,
                                                        dim=self._network.input_shape,
                                                        shuffle=self._shuffle_training_inputs,
-                                                       dataset_type=self._network.input_mode)
+                                                       dataset_type=self._network.input_mode,
+                                                       output=self._output,
+                                                       output_file='train.txt')
         val_generator = DataGenerator(val_dataset, batch_size=self._bsz,
                                                    dim=self._network.input_shape,
                                                    shuffle=self._shuffle_training_inputs,
-                                                   dataset_type=self._network.input_mode)
+                                                   dataset_type=self._network.input_mode,
+                                                   output=self._output,
+                                                   output_file='val.txt')
 
         return train_generator, val_generator
 
@@ -149,25 +179,8 @@ class SiameseTrainer(object):
     def _create_output_dir(self):
         self._logger.info("Creating output dir...")
 
-        # create the output dir
         self._model_dir = os.path.join(self._output_dir, self._model_name)
         os.mkdir(self._model_dir)
-
-        # save the training config to the output dir
-        self._logger.info("Saving training config...")
-
-        # copy some extra metadata to the config
-        self._cfg["dataset_dir"] = self._dataset_dir
-
-        # save
-        cfg_save_fname = os.path.join(self._model_dir, FileTemplates.CONFIG_FILENAME)
-        cfg_save_dict = OrderedDict()
-        for key in self._cfg.keys():
-            cfg_save_dict[key] = self._cfg[key]
-        with open(cfg_save_fname, "w") as fhandle:
-            json.dump(cfg_save_dict,
-                      fhandle,
-                      indent=GeneralConstants.JSON_INDENT)
 
 
     def _setup(self):
