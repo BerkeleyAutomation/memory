@@ -9,7 +9,6 @@ import os
 import random
 
 import skimage
-import skimage.io
 import numpy as np
 import keras.utils as ku
 
@@ -72,7 +71,7 @@ class ImageDataset(object):
         if pos:
             # Pick random slice of original image in that view
             im2_views = os.path.join(folder1, view_str)
-            im2 = os.path.join(im2_views, random.choice(os.listdir(im2_views))  )
+            im2 = os.path.join(im2_views, random.choice(os.listdir(im2_views)))
 
             # print ("im2: " + str(im2) )
             label = 1
@@ -135,7 +134,7 @@ class ImageDataset(object):
             im2_views = os.path.join(folder2, new_view)
             #im2 = im2_views
             #im2 = os.path.join(im2_views, "img.npz")
-            im2 = os.path.join(im2_views, random.choice(os.listdir(im2_views))  )
+            im2 = os.path.join(im2_views, random.choice(os.listdir(im2_views)))
             # print ("im2: " + str(im2) )
 
             label = 0

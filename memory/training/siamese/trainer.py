@@ -8,13 +8,11 @@ import os
 import cPickle as pkl
 import multiprocessing as mp
 
-import numpy as np
 import keras.callbacks as kc
 import keras.optimizers as ko
 
 from autolab_core import Logger
 
-from memory.model.nearest_neighbors.neighbor_gen import NeighborGenerator
 from memory.training.utils import (FileTemplates, DirTemplates,
                                    ImageDataset, DataGenerator,
                                    build_contrastive_loss)
