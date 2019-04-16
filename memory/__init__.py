@@ -1,6 +1,6 @@
-from .model import SiameseNet, ResNet50Fused, Neighbors
+from .model import SiameseNet
 from .training import SiameseTrainer
 
-__all__ = ["SiameseNet", "ResNet50Fused", "Neighbors",
+__all__ = ["SiameseNet",
            "SiameseTrainer"]
 
