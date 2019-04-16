@@ -7,17 +7,17 @@ Authors: Vishal Satish, Kate Sanders,
 import os
 import cPickle as pkl
 import multiprocessing as mp
-from collections import OrderedDict
-import json
 
+import numpy as np
 import keras.callbacks as kc
 import keras.optimizers as ko
 
 from autolab_core import Logger
 
+from memory.model.nearest_neighbors.neighbor_gen import NeighborGenerator
 from memory.training.utils import (FileTemplates, DirTemplates,
-                                   ImageDataset, DataGenerator,
-                                   build_contrastive_loss, GeneralConstants)
+                                   GeneralConstants, ImageDataset, 
+                                   DataGenerator, build_contrastive_loss)
 
 
 class SiameseTrainer(object):
@@ -41,8 +41,6 @@ class SiameseTrainer(object):
 
 
     def _parse_config(self, config):
-        self._cfg = config
-
         # training
         self._num_epochs = config["num_epochs"]
         self._loss_margin = config["loss_margin"]
@@ -62,7 +60,6 @@ class SiameseTrainer(object):
         self._num_val_pairs = config["num_val_pairs"]
         self._data_augmentation_suffixes = config["data_augmentation_suffixes"]
         self._allow_different_views = config["allow_different_views"]
-
 
     def _launch_tensorboard(self):
         """ Launches Tensorboard to visualize training. """
@@ -150,8 +147,9 @@ class SiameseTrainer(object):
 
 
     def _create_output_dir(self):
-        # creat the output dir
         self._logger.info("Creating output dir...")
+
+        # create the output dir
         self._model_dir = os.path.join(self._output_dir, self._model_name)
         os.mkdir(self._model_dir)
 
@@ -183,4 +181,3 @@ class SiameseTrainer(object):
 
         # build train and val data generators
         self._train_gen, self._val_gen = self._build_data_generators(train_dataset, val_dataset)
-

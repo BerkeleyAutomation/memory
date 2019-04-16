@@ -76,4 +76,4 @@ if __name__ == "__main__":
                              train_config,
                              model_name=name)
     trainer.train()
-    logger.info("Total Training Time:" + str(utils.get_elapsed_time(time.time() - start_time))) 
+    logger.info("Total Training Time:" + str(utils.get_elapsed_time(time.time() - start_time)))
