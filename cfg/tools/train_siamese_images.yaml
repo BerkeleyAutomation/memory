@@ -8,24 +8,27 @@ loss_margin: 1.0 # pretty important parameter, trade-off between training time a
 optimizer:
   type: Adam # right now only one supported, TODO:(vsatish) Add support for more optimizers.
   # the following parameters will be optimizer-specific, check out build_optimizer() in SiameseTrainer for details
-  lr: 0.0000001 # should be low for fine-tuning
+  lr: 0.001 # should be low for fine-tuning
 reg_coeff: 0.0005
 drop_rate: 0.0
 tensorboard_port: 6006 # currently not used, TODO:(vsatish) Get automatic TensorBoard launch working.
+
 bsz: 8 # this is probably not a great choice of bsz, but it allows this example to fit in 12GB DRAM x2 devices
 num_prefetch_workers: 8 # at max number of logical cores
-num_train_pairs: 1000
-num_val_pairs: 100
+
+num_train_pairs: 100
+num_val_pairs: 10
 
 shuffle_training_inputs: 1
 data_augmentation_suffixes: [""]
-allow_different_views: 1  
+allow_different_views: 0  
+
 
 ######################### MODEL PARAMS #########################
 siamese_net:
   network_mode: training # training or inference
-  input_mode: feature # image or feature
-  input_shape: [9984] # dim must match up with input_mode (3 for image, 1 for feature)
+  input_mode: image # image or feature
+  input_shape: [512, 512, 3] # dim must match up with input_mode (3 for image, 1 for feature)
   num_gpus: 2 # number of GPUs to use, max 2 (1 for each input stream)
 
   architecture:
@@ -132,6 +135,5 @@ siamese_net:
         norm: 1
     merge_stream: # can be fc layer(s) for generic distance function, or l1/l2
       l2_norm:
-        type: fc
-        out_size: 1
+        type: l2
 
