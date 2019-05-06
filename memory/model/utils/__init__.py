@@ -1,7 +1,7 @@
 from .enums import NetworkMode, InputMode
 from .utils import (l2_distance, l1_distance, 
-                    setup_tf_session, get_available_gpus)
+                    setup_tf_session, get_available_gpus, threshold)
 
 __all__ = ["NetworkMode", "InputMode",
-           "l2_distance", "l1_distance", "setup_tf_session", "get_available_gpus"]
+           "l2_distance", "l1_distance", "setup_tf_session", "get_available_gpus", "threshold"]
 

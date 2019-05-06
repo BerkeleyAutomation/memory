@@ -38,7 +38,7 @@ class ImageDataset(object):
             ...
     """
 
-    def __init__(self, base_path, imset, data_augmentation_suffixes=[''], allow_different_views=False):
+    def __init__(self, base_path, imset, data_augmentation_suffixes=[''], allow_different_views=False, verbose=False):
         assert base_path != "", "You must provide the path to a dataset!"
 
         self.data_path = os.path.join(base_path, imset)
@@ -49,6 +49,7 @@ class ImageDataset(object):
         self.triple_info = []
         self.data_augmentation_suffixes = data_augmentation_suffixes
         self.allow_different_views = allow_different_views
+        self.verbose = verbose
 
     def generate_triple_from_ind(self, index):
         class_ind = index % self._num_images**2
@@ -149,9 +150,13 @@ class ImageDataset(object):
             "class1": class1,
             "class2": class2
         })
+        if self.verbose:
+            f = open("ground.txt", "a")
+            f.write("{} {} {} ".format(label, class1, class2))
+            f.close()
 
     def prepare_specific(self, size, class1, class2):
-        for i in range(size):
+        for _ in range(size):
             self.add_triple(*self.generate_triple_specific(True, class1, class2))
             self.add_triple(*self.generate_triple_specific(False, class1, class2))
 
@@ -159,6 +164,9 @@ class ImageDataset(object):
         for i in range(size):
             self.add_triple(*self.generate_triple(True))
             self.add_triple(*self.generate_triple(False))
+            rand = np.random.uniform()
+            if rand > .8:
+                self.add_triple(*self.generate_triple(False))
 
     def load_im(self, image_id, key):
         # loads image from path

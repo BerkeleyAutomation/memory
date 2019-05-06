@@ -20,6 +20,8 @@ def l1_distance(vects):
     x, y = vects
     return kb.sum(kb.abs(x - y), axis=1, keepdims=True)
 
+def threshold(vect):
+    return kb.sigmoid(vect)
 
 # Tensorflow helper functions
 session_has_been_set = False

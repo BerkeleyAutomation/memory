@@ -9,9 +9,15 @@ import cPickle as pkl
 import multiprocessing as mp
 from collections import OrderedDict
 import json
-
+import numpy as np
 import keras.callbacks as kc
 import keras.optimizers as ko
+import keras.backend as kb
+
+from nearpy import Engine
+from nearpy.hashes import RandomBinaryProjections
+from nearpy.filters import NearestFilter
+
 
 from autolab_core import Logger
 
@@ -84,8 +90,8 @@ class SiameseTrainer(object):
 
     def _build_optimizer(self):
         if self._optimizer_config["type"] == "Adam":
-            return ko.Adam(lr=self._optimizer_config["lr"])
-
+#            return ko.Adam(lr=self._optimizer_config["lr"])
+            return ko.SGD(lr=self._optimizer_config["lr"], clipvalue=0.5)
 
     def train(self):
         # set up for training
@@ -96,10 +102,19 @@ class SiameseTrainer(object):
         self._network.drop_rate = self._drop_rate # set the network dropout rate
         self._network.initialize_network()
 
+        def new_acc(y_truth, y_pred):
+#            return kb.mean(kb.equal(kb.equal(y_truth, 1), kb.less(y_pred, kb.mean(y_pred))))
+            return kb.mean(kb.equal(kb.equal(y_truth, 1), kb.less(y_pred, 0.5)))
+        def avg_label(y_truth, y_pred):
+            return kb.mean(y_truth)
+
+        def avg_pred(y_truth, y_pred):
+            return kb.mean(y_pred)
+
         # optimize
         self._network.model.compile(loss=self._build_loss(),
                                     optimizer=self._build_optimizer(),
-                                    metrics=["acc"])
+                                    metrics=[new_acc, avg_label, avg_pred])
 
         callbacks = [
             kc.TensorBoard(log_dir=os.path.join(self._model_dir, DirTemplates.LOG_DIR), histogram_freq=0, write_graph=True, write_images=False),
@@ -113,6 +128,67 @@ class SiameseTrainer(object):
                                                     use_multiprocessing=True,
                                                     callbacks=callbacks,
                                                     workers=self._num_prefetch_workers)
+
+        pred_dataset = ImageDataset(self._dataset_dir, "validation", verbose=False)
+        pred_dataset.prepare(self._num_val_pairs)
+
+        pred_generator = DataGenerator(pred_dataset, batch_size=self._bsz,
+                                                   dim=self._network.input_shape,
+                                                   shuffle=self._shuffle_training_inputs,
+                                                   dataset_type=self._network.input_mode, output=True)
+        predictions = self._network.model.predict_generator(generator=pred_generator)
+        np.save('pred.npy', predictions)
+
+#------------------------------------------------------------------------------------------------------------------
+
+#make new dataset
+        seen_dataset = ImageDataset(self._dataset_dir, 'seen')
+        seen = []
+
+#only add imgs that are returned by nearpy
+
+        new = []
+        for i in range(4,5):
+            new += [os.path.join(x, 'view_00000{}'.format(i)) for x in os.listdir(os.path.join(self._dataset_dir, 'test'))]
+        pred_arr = []
+        dimension = 9984
+        engine = Engine(dimension, vector_filters=[NearestFilter(5)])
+            #for i in range(0, iter):
+        #seen = list(seen_dataset._class_labels)
+        seen = []
+        for i in range(4):
+            seen += [os.path.join(x, 'view_00000{}'.format(i)) for x in os.listdir(os.path.join(self._dataset_dir, 'seen'))]
+        for class1 in seen:
+            folder1 = os.path.join(os.path.join(self._dataset_dir, 'seen'), class1)
+            for obj in os.listdir(folder1):
+                im2 = os.path.join(folder1, obj)
+                image = np.load(im2)
+                engine.store_vector(image['arr_0'], class1)
+        for img in new:
+        #nea rpy stuff
+            folder1 = os.path.join(os.path.join(self._dataset_dir, 'test'), img)
+            im = os.path.join(folder1, os.listdir(folder1)[0])
+            image = np.load(im)['arr_0']
+            neighbors = engine.neighbours(image)
+            for n in neighbors:
+                folder1 = os.path.join(os.path.join(self._dataset_dir, 'seen'), n[1])
+                im = os.path.join(folder1, os.listdir(folder1)[0]) #make random
+                neighbor = np.load(im)['arr_0']
+                prediction = self._network.model.predict([np.array([image]), np.array([neighbor])])
+                pred_arr += [[img[:-12], n[1][:-12], prediction]]
+
+        for item in pred_arr:
+            f = open("ground_n.txt", "a")
+            if item[0] == item[1]:
+                f.write('1 {} {} {} '.format(item[0], item[1], item[2]))
+            else:
+                f.write('0 {} {} {} '.format(item[0], item[1], item[2]))
+            f.close()
+
+
+
+#-----------------------------------------------------------------------------------------------------------------
+
 
         # save the training history
         with open(os.path.join(self._model_dir, FileTemplates.TRAIN_HISTORY), "wb") as fhandle:

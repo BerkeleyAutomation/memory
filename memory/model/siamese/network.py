@@ -13,12 +13,12 @@ import tensorflow as tf
 import keras.layers as kl
 import keras.models as km
 import keras.regularizers as kr
-
+import keras.backend as kb
 from autolab_core import Logger
 
 from memory.model.utils import (NetworkMode, InputMode, 
                                  get_available_gpus, setup_tf_session, 
-                                 l1_distance, l2_distance)
+                                 l1_distance, l2_distance, threshold)
 from memory.training.utils import FileTemplates
 from memory.model import ResNet50Fused
 
@@ -281,6 +281,7 @@ class SiameseNet(object):
             else:
                 raise ValueError("Layer type: {} unsupported in merge stream.".format(layer_type))
             prev_layer = layer_type
+#        output_node = kl.Lambda(kb.sigmoid, name="{}_final".format(layer_name))(output_node)
         return output_node
 
 
