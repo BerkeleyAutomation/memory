@@ -90,7 +90,6 @@ class SiameseTrainer(object):
 
     def _build_optimizer(self):
         if self._optimizer_config["type"] == "Adam":
-#            return ko.Adam(lr=self._optimizer_config["lr"])
             return ko.SGD(lr=self._optimizer_config["lr"], clipvalue=0.5)
 
     def train(self):
@@ -103,7 +102,6 @@ class SiameseTrainer(object):
         self._network.initialize_network()
 
         def new_acc(y_truth, y_pred):
-#            return kb.mean(kb.equal(kb.equal(y_truth, 1), kb.less(y_pred, kb.mean(y_pred))))
             return kb.mean(kb.equal(kb.equal(y_truth, 1), kb.less(y_pred, 0.5)))
         def avg_label(y_truth, y_pred):
             return kb.mean(y_truth)
@@ -120,7 +118,6 @@ class SiameseTrainer(object):
             kc.TensorBoard(log_dir=os.path.join(self._model_dir, DirTemplates.LOG_DIR), histogram_freq=0, write_graph=True, write_images=False),
             kc.ModelCheckpoint(os.path.join(self._model_dir, FileTemplates.MODEL_CKPT), verbose=0, save_weights_only=True)
         ]
-        #TODO:(vsatish) Automate tensorboard launch.
 
         history = self._network.model.fit_generator(generator=self._train_gen,
                                                     validation_data=self._val_gen,
@@ -139,63 +136,55 @@ class SiameseTrainer(object):
         predictions = self._network.model.predict_generator(generator=pred_generator)
         np.save('pred.npy', predictions)
 
-#------------------------------------------------------------------------------------------------------------------
-
-#make new dataset
-        seen_dataset = ImageDataset(self._dataset_dir, 'seen')
-        seen = []
-
-#only add imgs that are returned by nearpy
-
-        new = []
-        for i in range(4,5):
-            new += [os.path.join(x, 'view_00000{}'.format(i)) for x in os.listdir(os.path.join(self._dataset_dir, 'test'))]
-        pred_arr = []
-        dimension = 9984
-        engine = Engine(dimension, vector_filters=[NearestFilter(5)])
-            #for i in range(0, iter):
-        #seen = list(seen_dataset._class_labels)
-        seen = []
-        for i in range(4):
-            seen += [os.path.join(x, 'view_00000{}'.format(i)) for x in os.listdir(os.path.join(self._dataset_dir, 'seen'))]
-        for class1 in seen:
-            folder1 = os.path.join(os.path.join(self._dataset_dir, 'seen'), class1)
-            for obj in os.listdir(folder1):
-                im2 = os.path.join(folder1, obj)
-                image = np.load(im2)
-                engine.store_vector(image['arr_0'], class1)
-        for img in new:
-        #nea rpy stuff
-            folder1 = os.path.join(os.path.join(self._dataset_dir, 'test'), img)
-            im = os.path.join(folder1, os.listdir(folder1)[0])
-            image = np.load(im)['arr_0']
-            neighbors = engine.neighbours(image)
-            for n in neighbors:
-                folder1 = os.path.join(os.path.join(self._dataset_dir, 'seen'), n[1])
-                im = os.path.join(folder1, os.listdir(folder1)[0]) #make random
-                neighbor = np.load(im)['arr_0']
-                prediction = self._network.model.predict([np.array([image]), np.array([neighbor])])
-                pred_arr += [[img[:-12], n[1][:-12], prediction]]
-
-        for item in pred_arr:
-            f = open("ground_n.txt", "a")
-            if item[0] == item[1]:
-                f.write('1 {} {} {} '.format(item[0], item[1], item[2]))
-            else:
-                f.write('0 {} {} {} '.format(item[0], item[1], item[2]))
-            f.close()
-
-
-
-#-----------------------------------------------------------------------------------------------------------------
-
-
         # save the training history
         with open(os.path.join(self._model_dir, FileTemplates.TRAIN_HISTORY), "wb") as fhandle:
             pkl.dump(history.history, fhandle)
 
         # save the final model
         self._network.model.save_weights(os.path.join(self._model_dir, FileTemplates.FINAL_MODEL_CKPT))
+
+    def predict_neighbors(self):
+        dimension = 9984
+        seen_dataset = ImageDataset(self._dataset_dir, 'seen')
+        seen, new, pred_arr = [], [], []
+        for i in range(4,5):
+            new += [os.path.join(x, 'view_00000{}'.format(i)) for x in os.listdir(os.path.join(self._dataset_dir, 'test'))]
+        for i in range(4):
+            seen += [os.path.join(x, 'view_00000{}'.format(i)) for x in os.listdir(os.path.join(self._dataset_dir, 'seen'))]
+        engine = Engine(dimension, vector_filters=[NearestFilter(5)])
+
+        # cache seen objects
+        for view in seen:
+            view_loc = os.path.join(os.path.join(self._dataset_dir, 'seen'), view)
+            for im in os.listdir(view_loc):
+                im = os.path.join(view_loc, im)
+                image = np.load(im)
+                engine.store_vector(image['arr_0'], view_loc)
+
+        # query new objects
+        for view in new:
+            view_loc = os.path.join(os.path.join(self._dataset_dir, 'test'), view)
+            # currently takes first image in folder for views, will want to change this on a test-by-test basis
+            im = os.path.join(view_loc, os.listdir(view_loc)[0])
+            image = np.load(im)['arr_0']
+            neighbors = engine.neighbours(image)
+
+            for neighbor in neighbors:
+                neighbor_loc = neighbor[1]
+                # currently takes first image in folder for any view, will want to change this on a test-by-test basis
+                im = os.path.join(neighbor_loc, os.listdir(neighbor_loc)[0])
+                neighbor = np.load(im)['arr_0']
+                prediction = self._network.model.predict([np.array([image]), np.array([neighbor])])
+                pred_arr += [[img[:-12], n[1][:-12], prediction]]
+
+        # log results 
+        f = open("nn_ground.txt", "w")
+        for item in pred_arr:
+            if item[0] == item[1]:
+                f.write('1 {} {} {} '.format(item[0], item[1], item[2]))
+            else:
+                f.write('0 {} {} {} '.format(item[0], item[1], item[2]))
+        f.close()
 
 
     def _prepare_datasets(self):
