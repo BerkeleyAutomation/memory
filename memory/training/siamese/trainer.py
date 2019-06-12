@@ -13,6 +13,7 @@ import numpy as np
 import keras.callbacks as kc
 import keras.optimizers as ko
 import keras.backend as kb
+import h5py
 
 from nearpy import Engine
 from nearpy.hashes import RandomBinaryProjections
@@ -143,47 +144,60 @@ class SiameseTrainer(object):
         # save the final model
         self._network.model.save_weights(os.path.join(self._model_dir, FileTemplates.FINAL_MODEL_CKPT))
 
-    def predict_neighbors(self):
+    def load_model(self, model):
+        self._network = self._network.load(model)
+
+    def initialize_cache(self):
+        dimension = 9984
+        self._engine = Engine(dimension, vector_filters=[NearestFilter(5)])
+
+    def add_cache_instance(self, image_feat, data_tuple):
+        self._engine.store_vector(image_feat, data_tuple)
+
+    def check_cache(self, query):
+        neighbors = self._engine.neighbours(query)
+        best = [None, float("inf")]
+        for neighbor in neighbors:
+            prediction = self._network.model.predict([np.array([query]), np.array([neighbor[0]])])
+            if prediction < best[1]:
+                best = [neighbor, prediction]
+        return best
+
+    def predict_neighbors_batch(self):
         dimension = 9984
         seen_dataset = ImageDataset(self._dataset_dir, 'seen')
         seen, new, pred_arr = [], [], []
-        for i in range(4,5):
+        for i in range(1):
             new += [os.path.join(x, 'view_00000{}'.format(i)) for x in os.listdir(os.path.join(self._dataset_dir, 'test'))]
-        for i in range(4):
+        for i in range(1): #originally 5
             seen += [os.path.join(x, 'view_00000{}'.format(i)) for x in os.listdir(os.path.join(self._dataset_dir, 'seen'))]
         engine = Engine(dimension, vector_filters=[NearestFilter(5)])
 
         # cache seen objects
         for view in seen:
             view_loc = os.path.join(os.path.join(self._dataset_dir, 'seen'), view)
-            for im in os.listdir(view_loc):
-                im = os.path.join(view_loc, im)
-                image = np.load(im)
-                engine.store_vector(image['arr_0'], view_loc)
+            for im in os.listdir(view_loc)[:]:
+                im_loc = os.path.join(view_loc, im)
+                image = np.load(im_loc)['arr_0']
+                engine.store_vector(image, im_loc)
 
         # query new objects
         for view in new:
             view_loc = os.path.join(os.path.join(self._dataset_dir, 'test'), view)
-            # currently takes first image in folder for views, will want to change this on a test-by-test basis
             im = os.path.join(view_loc, os.listdir(view_loc)[0])
             image = np.load(im)['arr_0']
             neighbors = engine.neighbours(image)
 
             for neighbor in neighbors:
                 neighbor_loc = neighbor[1]
-                # currently takes first image in folder for any view, will want to change this on a test-by-test basis
-                im = os.path.join(neighbor_loc, os.listdir(neighbor_loc)[0])
-                neighbor = np.load(im)['arr_0']
+                neighbor = np.load(neighbor_loc)['arr_0']
                 prediction = self._network.model.predict([np.array([image]), np.array([neighbor])])
-                pred_arr += [[img[:-12], n[1][:-12], prediction]]
+                pred_arr += [[im[:], neighbor_loc[:], prediction]]
 
         # log results 
         f = open("nn_ground.txt", "w")
         for item in pred_arr:
-            if item[0] == item[1]:
-                f.write('1 {} {} {} '.format(item[0], item[1], item[2]))
-            else:
-                f.write('0 {} {} {} '.format(item[0], item[1], item[2]))
+            f.write('{} {} {} '.format(item[0], item[1], item[2][0][0]))
         f.close()
 
 
