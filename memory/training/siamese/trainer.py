@@ -48,6 +48,9 @@ class SiameseTrainer(object):
 
 
     def _parse_config(self, config):
+        if not config:
+            return
+
         self._cfg = config
 
         # training
@@ -154,13 +157,15 @@ class SiameseTrainer(object):
     def add_cache_instance(self, image_feat, data_tuple):
         self._engine.store_vector(image_feat, data_tuple)
 
-    def check_cache(self, query):
+    def check_cache(self, query, threshold):
         neighbors = self._engine.neighbours(query)
         best = [None, float("inf")]
         for neighbor in neighbors:
             prediction = self._network.model.predict([np.array([query]), np.array([neighbor[0]])])
             if prediction < best[1]:
                 best = [neighbor, prediction]
+        if best[1] > threshold:
+            best = None
         return best
 
     def predict_neighbors_batch(self):
