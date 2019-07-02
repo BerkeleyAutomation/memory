@@ -73,7 +73,7 @@ class SiameseNet(object):
         self._num_gpus = config["num_gpus"]
         assert self._num_gpus <= 2, "Max 2 GPUs (1 per siamese network) are supported."
         self._avail_gpus = get_available_gpus()
-        assert self._num_gpus <= len(self._avail_gpus), "More GPUs requested than available."
+#        assert self._num_gpus <= len(self._avail_gpus), "More GPUs requested than available."
 
         self._input_shape = config["input_shape"]
         if self._input_mode == InputMode.FEATURE:

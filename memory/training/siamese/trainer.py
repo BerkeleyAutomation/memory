@@ -148,7 +148,7 @@ class SiameseTrainer(object):
         self._network.model.save_weights(os.path.join(self._model_dir, FileTemplates.FINAL_MODEL_CKPT))
 
     def load_model(self, model):
-        self._network = self._network.load(model)
+        self._network = self._network.load_trained_weights(model)
 
     def initialize_cache(self):
         dimension = 9984
