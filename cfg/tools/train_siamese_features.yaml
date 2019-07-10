@@ -29,7 +29,7 @@ siamese_net:
   network_mode: training # training or inference
   input_mode: feature # image or feature
   input_shape: [9984] # dim must match up with input_mode (3 for image, 1 for feature)
-  num_gpus: 2 # number of GPUs to use, max 2 (1 for each input stream)
+  num_gpus: 1 # number of GPUs to use, max 2 (1 for each input stream)
 
   architecture:
     ############################################

@@ -37,6 +37,8 @@ class SiameseTrainer(object):
         self._model_name = model_name
         self._progress_dict = progress_dict
 
+        self._network.initialize_network()
+
         # set up logger
         self._logger = Logger.get_logger(self.__class__.__name__, 
                                          log_file=log_file, 
@@ -153,17 +155,25 @@ class SiameseTrainer(object):
     def initialize_cache(self):
         dimension = 9984
         self._engine = Engine(dimension, vector_filters=[NearestFilter(5)])
+        self._selfcache = []
 
     def add_cache_instance(self, image_feat, data_tuple):
         self._engine.store_vector(image_feat, data_tuple)
+        self._selfcache.append([image_feat, data_tuple])
+        print(image_feat, data_tuple)
 
     def check_cache(self, query, threshold):
         neighbors = self._engine.neighbours(query)
         best = [None, float("inf")]
-        for neighbor in neighbors:
+       # for neighbor in neighbors:
+       #     prediction = self._network.model.predict([np.array([query]), np.array([neighbor[0]])])
+       #     if prediction < best[1]:
+       #         best = [neighbor, prediction]
+        for neighbor in self._selfcache:
             prediction = self._network.model.predict([np.array([query]), np.array([neighbor[0]])])
             if prediction < best[1]:
                 best = [neighbor, prediction]
+        print(best)
         if best[1] > threshold:
             best = None
         return best
