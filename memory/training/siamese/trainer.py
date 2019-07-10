@@ -150,7 +150,7 @@ class SiameseTrainer(object):
         self._network.model.save_weights(os.path.join(self._model_dir, FileTemplates.FINAL_MODEL_CKPT))
 
     def load_model(self, model):
-        self._network = self._network.load_trained_weights(model)
+        self._network.load_trained_weights(model)
 
     def initialize_cache(self):
         dimension = 9984
@@ -165,10 +165,10 @@ class SiameseTrainer(object):
     def check_cache(self, query, threshold):
         neighbors = self._engine.neighbours(query)
         best = [None, float("inf")]
-       # for neighbor in neighbors:
-       #     prediction = self._network.model.predict([np.array([query]), np.array([neighbor[0]])])
-       #     if prediction < best[1]:
-       #         best = [neighbor, prediction]
+        for neighbor in neighbors:
+            prediction = self._network.model.predict([np.array([query]), np.array([neighbor[0]])])
+            if prediction < best[1]:
+                best = [neighbor, prediction]
         for neighbor in self._selfcache:
             prediction = self._network.model.predict([np.array([query]), np.array([neighbor[0]])])
             if prediction < best[1]:
