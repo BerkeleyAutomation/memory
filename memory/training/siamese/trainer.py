@@ -160,7 +160,6 @@ class SiameseTrainer(object):
     def add_cache_instance(self, image_feat, data_tuple):
         self._engine.store_vector(image_feat, data_tuple)
         self._selfcache.append([image_feat, data_tuple])
-        print(image_feat, data_tuple)
 
     def check_cache(self, query, threshold):
         neighbors = self._engine.neighbours(query)
@@ -173,7 +172,7 @@ class SiameseTrainer(object):
             prediction = self._network.model.predict([np.array([query]), np.array([neighbor[0]])])
             if prediction < best[1]:
                 best = [neighbor, prediction]
-        print(best)
+        print(best[1])
         if best[1] > threshold:
             best = None
         return best
